@@ -5,8 +5,21 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./src/config/db");
 const path = require("path");
+const fs = require("fs");
 
-dotenv.config({ path: path.join(__dirname, ".env.developement") });
+const primaryEnvPath = path.join(__dirname, ".env.developement");
+const fallbackEnvPath = path.join(__dirname, ".env");
+
+if (fs.existsSync(primaryEnvPath)) {
+  dotenv.config({ path: primaryEnvPath });
+} else if (fs.existsSync(fallbackEnvPath)) {
+  dotenv.config({ path: fallbackEnvPath });
+} else {
+  dotenv.config();
+  console.warn(
+    "⚠️  No backend/.env.developement or backend/.env file found. Relying on existing environment variables."
+  );
+}
 connectDB();
 
 const app = express();

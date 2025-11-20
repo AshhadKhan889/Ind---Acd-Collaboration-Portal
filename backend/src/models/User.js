@@ -19,6 +19,8 @@ const userSchema = new mongoose.Schema(
         "Islamabad Campus",
         "National University of Sciences and Technology (Islamabad)",
         "Bahria University (Islamabad)",
+        "Bahria University (Karachi)",
+        "Bahria University (Lahore)",
         "COMSATS University (Islamabad)",
         "FAST National University of Computer and Emerging Sciences (Lahore)",
         "FAST National University of Computer and Emerging Sciences (Karachi)",
