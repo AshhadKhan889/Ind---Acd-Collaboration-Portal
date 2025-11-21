@@ -253,12 +253,15 @@ const OpportunitiesHub = () => {
   };
 
   const handleReplySubmit = async (commentId, replyText) => {
-    if (!replyText.trim()) return;
+    // Validate that replyText exists and is not empty after trimming
+    if (!replyText || !replyText.trim()) {
+      return;
+    }
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
         `${API_BASE}/comments/reply/${commentId}`,
-        { comment: replyText },
+        { comment: replyText.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const reply = res.data.reply;
@@ -566,6 +569,7 @@ const OpportunitiesHub = () => {
                     />
                     <Button
                       onClick={() => handleReplySubmit(c._id, c.replyDraft)}
+                      disabled={!c.replyDraft || !c.replyDraft.trim()}
                     >
                       Reply
                     </Button>

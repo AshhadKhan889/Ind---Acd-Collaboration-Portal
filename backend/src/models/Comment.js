@@ -14,7 +14,7 @@ const commentSchema = new mongoose.Schema({
   comment: { type: String, required: true },
   commentType: {
     type: String,
-    enum: ["General", "Feedback", "Question"],
+    enum: ["General", "Feedback", "Query"],
     default: "General",
   },
   visibility: {
