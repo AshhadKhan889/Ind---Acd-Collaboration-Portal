@@ -519,7 +519,7 @@ const JobPosting = ({ currentUserId }) => {
               onChange={(e) => updateField("minSalary", e.target.value)}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">$</InputAdornment>
+                  <InputAdornment position="start">Rs</InputAdornment>
                 ),
               }}
             />
@@ -531,7 +531,7 @@ const JobPosting = ({ currentUserId }) => {
               onChange={(e) => updateField("maxSalary", e.target.value)}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">$</InputAdornment>
+                  <InputAdornment position="start">Rs</InputAdornment>
                 ),
               }}
             />

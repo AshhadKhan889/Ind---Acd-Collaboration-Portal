@@ -18,7 +18,7 @@ const projectSchema = new mongoose.Schema({
   },
 
   budget: {
-    currency: { type: String, default: "USD" },
+    currency: { type: String, default: "PKR" },
     amount: { type: Number },
   },
   teamSize: { type: Number },

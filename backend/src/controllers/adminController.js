@@ -6,6 +6,7 @@ const Restriction = require("../models/Restriction");
 const Job = require("../models/Job");
 const Project = require("../models/Project");
 const Internship = require("../models/Internship");
+const ForumPost = require("../models/ForumPost");
 
 // Allowed roles (must match your User.roleID enum)
 const ALLOWED_ROLES = ["Student", "Academia", "Industry Official", "Admin"];
@@ -312,6 +313,29 @@ const getUserById = async (req, res) => {
   }
 };
 
+const getAllForumPosts = async (req, res) => {
+  try {
+    const posts = await ForumPost.find()
+      .populate("author", "fullName email roleID")
+      .sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    console.error("getAllForumPosts:", err);
+    res.status(500).json({ message: "Error fetching forum posts" });
+  }
+};
+
+const deleteForumPost = async (req, res) => {
+  try {
+    const post = await ForumPost.findByIdAndDelete(req.params.id);
+    if (!post) return res.status(404).json({ message: "Forum post not found" });
+    res.json({ message: "Forum post deleted", post });
+  } catch (err) {
+    console.error("deleteForumPost:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 module.exports = {
   getAllUsers,
@@ -328,4 +352,6 @@ module.exports = {
   getAllInternships,
   deleteInternship,
   getUserById,
+  getAllForumPosts,
+  deleteForumPost,
 };

@@ -296,7 +296,7 @@ const JobDetails = () => {
                     primary="Salary Range"
                     secondary={
                       job.minSalary && job.maxSalary
-                        ? `$${job.minSalary} - $${job.maxSalary}`
+                        ? `Rs ${job.minSalary} - Rs ${job.maxSalary}`
                         : "Not specified"
                     }
                   />

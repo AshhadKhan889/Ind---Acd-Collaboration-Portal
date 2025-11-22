@@ -29,4 +29,7 @@ router.delete("/projects/:id", protect, isAdmin, adminCtrl.deleteProject);
 router.get("/internships", protect, isAdmin, adminCtrl.getAllInternships);
 router.delete("/internships/:id", protect, isAdmin, adminCtrl.deleteInternship);
 
+router.get("/forum-posts", protect, isAdmin, adminCtrl.getAllForumPosts);
+router.delete("/forum-posts/:id", protect, isAdmin, adminCtrl.deleteForumPost);
+
 module.exports = router;

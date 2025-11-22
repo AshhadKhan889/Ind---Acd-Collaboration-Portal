@@ -271,8 +271,8 @@ const InternshipDetails = () => {
                 </Typography>
                 <Typography display="flex" alignItems="center">
                   <AttachMoney color="primary" sx={{ mr: 0.5 }} />
-                  {internship.stipend?.min || 0} -{" "}
-                  {internship.stipend?.max || 0} per month
+                  Rs {internship.stipend?.min || 0} - Rs{" "}
+                  {internship.stipend?.max || 0} PKR per month
                 </Typography>
               </Box>
 

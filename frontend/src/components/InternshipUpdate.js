@@ -54,28 +54,29 @@ const InternshipUpdatePage = () => {
     const fetchData = async () => {
       try {
         const { data } = await axios.get(`/api/internships/${id}`);
+        const internship = data.internship || data; // Handle both response formats
         setFormData({
-          title: data.title || "",
-          description: data.description || "",
-          organization: data.organization || "",
-          type: data.internshipType?.toLowerCase() || "summer",
-          keywords: data.keywords || [],
+          title: internship.title || "",
+          description: internship.description || "",
+          organization: internship.organization || "",
+          type: internship.internshipType?.toLowerCase() || "summer",
+          keywords: internship.keywords || [],
           currentKeyword: "",
-          target_audience: data.targetMajors || [],
-          requiredSkills: data.requiredSkills || [],
+          target_audience: internship.targetMajors || [],
+          requiredSkills: internship.requiredSkills || [],
           currentSkill: "",
-          education: data.educationRequirements || [],
-          stipend: data.stipend
-            ? [data.stipend.min, data.stipend.max]
+          education: internship.educationRequirements || [],
+          stipend: internship.stipend
+            ? [internship.stipend.min, internship.stipend.max]
             : [1000, 3000],
-          locationType: data.workLocation?.toLowerCase() || "hybrid",
-          specificLocation: data.officeLocation || "",
-          benefits: data.benefits || [],
+          locationType: internship.workLocation?.toLowerCase() || "hybrid",
+          specificLocation: internship.officeLocation || "",
+          benefits: internship.benefits || [],
           currentBenefit: "",
-          start_date: data.startDate ? data.startDate.slice(0, 10) : "",
-          end_date: data.endDate ? data.endDate.slice(0, 10) : "",
-          last_date_to_apply: data.applicationDeadline
-            ? data.applicationDeadline.slice(0, 10)
+          start_date: internship.startDate ? internship.startDate.slice(0, 10) : "",
+          end_date: internship.endDate ? internship.endDate.slice(0, 10) : "",
+          last_date_to_apply: internship.applicationDeadline
+            ? internship.applicationDeadline.slice(0, 10)
             : "",
           supporting_docs: null,
         });
@@ -91,14 +92,24 @@ const InternshipUpdatePage = () => {
   const handleFileChange = (e) => setFiles(e.target.files);
 
   const handleSubmit = async () => {
+    // Validate required fields
+    if (!formData.title || !formData.title.trim()) {
+      alert("Title is required");
+      return;
+    }
+    if (!formData.organization || !formData.organization.trim()) {
+      alert("Organization is required");
+      return;
+    }
+
     setUpdating(true);
     try {
       const fd = new FormData();
 
       // ✅ Simple string fields
-      fd.append("title", formData.title);
-      fd.append("description", formData.description);
-      fd.append("organization", formData.organization);
+      fd.append("title", formData.title.trim());
+      fd.append("description", formData.description || "");
+      fd.append("organization", formData.organization.trim());
 
       // ✅ Internship type (uppercase matches schema enum)
       const typeMap = {
@@ -405,7 +416,7 @@ const InternshipUpdatePage = () => {
               }
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">$</InputAdornment>
+                  <InputAdornment position="start">Rs</InputAdornment>
                 ),
               }}
               fullWidth
@@ -423,7 +434,7 @@ const InternshipUpdatePage = () => {
               }
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">$</InputAdornment>
+                  <InputAdornment position="start">Rs</InputAdornment>
                 ),
               }}
               fullWidth

@@ -90,8 +90,8 @@ const ProjectDetails = () => {
     }
   };
 
-  const currency = project.budget?.currency ?? project.budgetCurrency ?? "USD";
-  const currencySymbol = { USD: "$", EUR: "€", GBP: "£" }[currency] || "$";
+  const currency = project.budget?.currency ?? project.budgetCurrency ?? "PKR";
+  const currencySymbol = "Rs";
 
   // 🔗 Helper to form accessible file URLs
   const getFileUrl = (filePath) =>
@@ -279,7 +279,7 @@ const ProjectDetails = () => {
                     primary="Budget"
                     secondary={
                       project.budget?.amount
-                        ? `${currencySymbol}${project.budget.amount.toLocaleString()}`
+                        ? `${currencySymbol} ${project.budget.amount.toLocaleString()} PKR`
                         : "Not specified"
                     }
                   />

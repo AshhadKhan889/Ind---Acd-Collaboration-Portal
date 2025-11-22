@@ -27,6 +27,7 @@ import {
   Work,
   Assignment,
   TrendingUp,
+  Forum,
 } from "@mui/icons-material";
 import {
   BarChart,
@@ -52,6 +53,7 @@ const AdminDashboard = () => {
   const [jobs, setJobs] = useState([]);
   const [projects, setProjects] = useState([]);
   const [internships, setInternships] = useState([]);
+  const [forumPosts, setForumPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
@@ -65,16 +67,18 @@ const AdminDashboard = () => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [uRes, jRes, pRes, iRes] = await Promise.all([
+        const [uRes, jRes, pRes, iRes, fRes] = await Promise.all([
           axiosInstance.get("/api/admin/users"),
           axiosInstance.get("/api/admin/jobs"),
           axiosInstance.get("/api/admin/projects"),
           axiosInstance.get("/api/admin/internships"),
+          axiosInstance.get("/api/admin/forum-posts"),
         ]);
         setUsers(uRes.data);
         setJobs(jRes.data);
         setProjects(pRes.data);
         setInternships(iRes.data);
+        setForumPosts(fRes.data);
       } catch (err) {
         console.error("Admin fetch error", err?.response?.data || err.message);
       } finally {
@@ -122,6 +126,16 @@ const AdminDashboard = () => {
     try {
       await axiosInstance.delete(`/api/admin/internships/${id}`);
       setInternships(internships.filter((i) => i._id !== id));
+    } catch {
+      alert("Delete failed");
+    }
+  };
+
+  const deleteForumPost = async (id) => {
+    if (!window.confirm("Delete this forum post permanently?")) return;
+    try {
+      await axiosInstance.delete(`/api/admin/forum-posts/${id}`);
+      setForumPosts(forumPosts.filter((p) => p._id !== id));
     } catch {
       alert("Delete failed");
     }
@@ -472,6 +486,107 @@ const AdminDashboard = () => {
               </Box>
             </Box>
           ))}
+        </Card>
+      </Box>
+
+      {/* ====== Forum Posts ====== */}
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h6"
+          sx={{ mb: 2, display: "flex", alignItems: "center" }}
+        >
+          <Forum sx={{ mr: 1, color: "primary.main" }} /> Forum Posts
+          <Chip label={`${forumPosts.length} posts`} sx={{ ml: 2 }} />
+        </Typography>
+        <Card variant="outlined">
+          {forumPosts.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: "center" }}>
+              <Typography color="text.secondary">
+                No forum posts found
+              </Typography>
+            </Box>
+          ) : (
+            forumPosts.map((post) => (
+              <Box
+                key={post._id}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  p: 2,
+                  borderBottom: "1px solid #eee",
+                  "&:last-child": {
+                    borderBottom: "none",
+                  },
+                }}
+              >
+                <Box sx={{ flex: 1 }}>
+                  <Typography fontWeight={600} sx={{ mb: 1 }}>
+                    {post.title || "Untitled Post"}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{
+                      mb: 1,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                    }}
+                  >
+                    {post.content}
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Posted by:{" "}
+                      {post.author?.fullName ||
+                        post.author?.username ||
+                        post.author?.email ||
+                        "Unknown"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      • {post.author?.roleID || "N/A"}
+                    </Typography>
+                    {post.createdAt && (
+                      <Typography variant="body2" color="text.secondary">
+                        • {new Date(post.createdAt).toLocaleString()}
+                      </Typography>
+                    )}
+                    {post.comments && post.comments.length > 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        • {post.comments.length} comment
+                        {post.comments.length !== 1 ? "s" : ""}
+                      </Typography>
+                    )}
+                  </Box>
+                  {post.tags && post.tags.length > 0 && (
+                    <Box sx={{ mt: 1, display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                      {post.tags.map((tag, idx) => (
+                        <Chip
+                          key={idx}
+                          label={tag}
+                          size="small"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+                <Box sx={{ ml: 2 }}>
+                  <Button
+                    size="small"
+                    color="error"
+                    variant="contained"
+                    onClick={() => deleteForumPost(post._id)}
+                  >
+                    Delete
+                  </Button>
+                </Box>
+              </Box>
+            ))
+          )}
         </Card>
       </Box>
     </Box>

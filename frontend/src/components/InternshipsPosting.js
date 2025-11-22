@@ -527,7 +527,7 @@ const InternshipPosting = ({ currentUserId }) => {
               helperText={errors.stipendMin}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">$</InputAdornment>
+                  <InputAdornment position="start">Rs</InputAdornment>
                 ),
               }}
             />
@@ -544,7 +544,7 @@ const InternshipPosting = ({ currentUserId }) => {
               helperText={errors.stipendMax}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">$</InputAdornment>
+                  <InputAdornment position="start">Rs</InputAdornment>
                 ),
               }}
             />

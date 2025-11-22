@@ -85,7 +85,7 @@ const OpportunitiesHub = () => {
             : j.officeLocation || "Not specified",
           compensation:
             j.minSalary && j.maxSalary
-              ? `${j.minSalary} - ${j.maxSalary} USD`
+              ? `${j.minSalary} - ${j.maxSalary} PKR`
               : "Unpaid / TBD",
           posted:
             j.createdAt && !Number.isNaN(new Date(j.createdAt).getTime())
@@ -110,7 +110,7 @@ const OpportunitiesHub = () => {
             ? "Remote"
             : "On-site",
           compensation: p.budget?.amount
-            ? `${p.budget.amount} ${p.budget.currency || "USD"}`
+            ? `${p.budget.amount} ${p.budget.currency || "PKR"}`
             : "Unpaid / TBD",
           posted:
             p.createdAt && !Number.isNaN(new Date(p.createdAt).getTime())
@@ -134,7 +134,7 @@ const OpportunitiesHub = () => {
           location: i.workLocation || i.officeLocation || "Not specified",
           compensation: i.stipend
             ? `${i.stipend.min || 0} - ${i.stipend.max || 0} ${
-                i.stipend.currency || "USD"
+                i.stipend.currency || "PKR"
               }`
             : "Unpaid",
           posted:

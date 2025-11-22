@@ -44,7 +44,7 @@ const ProjectPosting = ({ currentUserId }) => {
     requiredSkills: [],
     currentSkill: "",
     budget: {
-      currency: "USD",
+      currency: "PKR",
       amount: 5000,
     },
     teamSize: 3,
@@ -558,23 +558,6 @@ const ProjectPosting = ({ currentUserId }) => {
           </Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Currency</InputLabel>
-                <Select
-                  value={formData.budget.currency}
-                  label="Currency"
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      budget: { ...formData.budget, currency: e.target.value },
-                    })
-                  }
-                >
-                  <MenuItem value="USD">USD ($)</MenuItem>
-                  <MenuItem value="EUR">EUR (€)</MenuItem>
-                  <MenuItem value="GBP">GBP (£)</MenuItem>
-                </Select>
-              </FormControl>
               <TextField
                 fullWidth
                 type="number"
@@ -588,13 +571,7 @@ const ProjectPosting = ({ currentUserId }) => {
                 }
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
-                      {formData.budget.currency === "USD"
-                        ? "$"
-                        : formData.budget.currency === "EUR"
-                        ? "€"
-                        : "£"}
-                    </InputAdornment>
+                    <InputAdornment position="start">Rs</InputAdornment>
                   ),
                 }}
                 error={!!errors.amount}

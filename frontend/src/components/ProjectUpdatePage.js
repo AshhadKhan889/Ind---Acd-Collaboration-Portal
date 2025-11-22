@@ -37,7 +37,7 @@ const ProjectUpdatePage = () => {
     endDate: "",
     applicationDeadline: "",
     budgetAmount: "",
-    budgetCurrency: "USD",
+    budgetCurrency: "PKR",
     teamSize: "",
     remoteAllowed: false,
     requiresNDA: false,
@@ -73,7 +73,7 @@ const ProjectUpdatePage = () => {
               ? data.project.timeline.applicationDeadline.slice(0, 10)
               : "",
             budgetAmount: data.project.budget?.amount || "",
-            budgetCurrency: data.project.budget?.currency || "USD",
+            budgetCurrency: data.project.budget?.currency || "PKR",
             teamSize: data.project.teamSize || "",
             remoteAllowed:
               data.project.collaborationPreferences?.remoteAllowed || false,
@@ -335,9 +335,10 @@ const ProjectUpdatePage = () => {
               <TextField
                 label="Budget Currency"
                 name="budgetCurrency"
-                value={formData.budgetCurrency}
-                onChange={handleChange}
+                value="PKR"
+                disabled
                 fullWidth
+                helperText="Currency is fixed to Pakistani Rupees (PKR)"
               />
             </Grid>
 
