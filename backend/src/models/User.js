@@ -175,7 +175,7 @@ const userSchema = new mongoose.Schema(
     activationToken: { type: String },
     activationExpires: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
 module.exports = mongoose.model("User", userSchema);
