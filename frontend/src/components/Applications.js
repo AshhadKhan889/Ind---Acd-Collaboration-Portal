@@ -18,6 +18,10 @@ const ApplicationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  
+  // Get logged in user
+  const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
 
   useEffect(() => {
     const fetchMyApplications = async () => {
@@ -168,7 +172,17 @@ const ApplicationsPage = () => {
                 </Typography>
 
                 {/* optional: view details or withdraw */}
-                <Box>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                  {app.status === "Accepted" && app.opportunityType === "project" && (
+                    <Button
+                      size="small"
+                      color="primary"
+                      variant="contained"
+                      onClick={() => navigate(`/profile/${storedUser?.id || storedUser?._id || "me"}`)}
+                    >
+                      Update Progress
+                    </Button>
+                  )}
                   <Button
                     size="small"
                     color="error"

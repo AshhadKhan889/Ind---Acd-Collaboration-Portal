@@ -8,7 +8,9 @@ import {
   List,
   ListItem,
   ListItemText,
+  Button,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const AcademiaDashboard = () => {
@@ -18,6 +20,7 @@ const AcademiaDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -76,6 +79,26 @@ const AcademiaDashboard = () => {
       )}
 
       <Grid container spacing={3}>
+        {/* Student Progress Tracking */}
+        <Grid item xs={12}>
+          <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+            <CardContent>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="h6">📊 Student Progress Tracking</Typography>
+                <Button
+                  variant="contained"
+                  onClick={() => navigate("/student-progress")}
+                >
+                  View All Progress
+                </Button>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Monitor the progress of students working on your accepted projects
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Posted Opportunities */}
         <Grid item xs={12} md={6}>
           <Card sx={{ borderRadius: 3, boxShadow: 3 }}>

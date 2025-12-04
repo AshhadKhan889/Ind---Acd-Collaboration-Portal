@@ -44,6 +44,7 @@ import UserProfile from "./components/UserProfile";
 import BlockUser from "./components/BlockUsers";
 import ActivateAccount from "./components/ActivateAccount";
 import ResendActivation from "./components/ResendActivation";
+import StudentProgressTracking from "./components/StudentProgressTracking";
 
 function App() {
   return (
@@ -126,6 +127,24 @@ function App() {
           <Route path="/forum/:id" element={<ForumPost />} />
           <Route path="/forum/create" element={<CreateForumPost />} />
           <Route path="/profile/:id" element={<UserProfile />} />
+          
+          {/* Student Progress Tracking (Academia only) */}
+          <Route
+            path="/student-progress"
+            element={
+              <ProtectedRoute allowedRoles={["Academia"]}>
+                <StudentProgressTracking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student-progress/:projectId"
+            element={
+              <ProtectedRoute allowedRoles={["Academia"]}>
+                <StudentProgressTracking />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Role-based: My Jobs */}
           <Route

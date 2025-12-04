@@ -131,7 +131,8 @@ const Navbar = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      // Clear all notifications from the display when marked as read
+      setNotifications([]);
     } catch {}
   };
 
@@ -247,10 +248,10 @@ const Navbar = () => {
           transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
           <MenuItem onClick={markAllRead}>Mark all as read</MenuItem>
-          {notifications.length === 0 && (
+          {notifications.filter((n) => !n.read).length === 0 && (
             <MenuItem disabled>No notifications</MenuItem>
           )}
-          {notifications.map((n) => (
+          {notifications.filter((n) => !n.read).map((n) => (
             <MenuItem
               key={n._id}
               onClick={() => {

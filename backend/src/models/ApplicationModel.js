@@ -15,7 +15,8 @@ const applicationSchema = new mongoose.Schema(
       required: true,
     },
     note: { type: String },
-    resumeUrl: { type: String },
+    resumeUrl: { type: String }, // Deprecated - kept for backward compatibility
+    resumeFilePath: { type: String }, // Path to uploaded resume file
 
     // ✅ Job-specific fields
     positionAppliedFor: { type: String },

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import RecommendDialog from "./RecommendDialog";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {
@@ -43,6 +44,14 @@ const OpportunitiesHub = () => {
   const [savedItems, setSavedItems] = useState([]);
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [suggestions, setSuggestions] = useState({
+    jobs: [],
+    projects: [],
+    internships: [],
+  });
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+  const [userSkills, setUserSkills] = useState([]);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const navigate = useNavigate();
 
   // Comment dialog state
@@ -57,6 +66,24 @@ const OpportunitiesHub = () => {
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [recommendOpen, setRecommendOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/profile/me`, {
+          headers: getAuthHeaders(),
+        });
+        setUserSkills(res.data.skills || []);
+      } catch (err) {
+        console.error("Failed to fetch profile:", err.response || err.message);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   // Fetch opportunities (unchanged)
   useEffect(() => {
@@ -105,7 +132,8 @@ const OpportunitiesHub = () => {
             p.organization || p.postedBy?.fullName || "Independent Project",
           description: p.projectDescription,
           skills: p.requiredSkills || [],
-          deadline: p.applicationDeadline || p.timeline?.applicationDeadline || null,
+          deadline:
+            p.applicationDeadline || p.timeline?.applicationDeadline || null,
           location: p.collaborationPreferences?.remoteAllowed
             ? "Remote"
             : "On-site",
@@ -162,6 +190,26 @@ const OpportunitiesHub = () => {
     };
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/suggestions`, {
+          headers: getAuthHeaders(),
+        });
+        setSuggestions(res.data);
+      } catch (err) {
+        console.error(
+          "Failed to fetch suggestions:",
+          err.response || err.message
+        );
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    fetchSuggestions();
   }, []);
 
   // Helpers: token and headers
@@ -321,7 +369,7 @@ const OpportunitiesHub = () => {
           variant="h3"
           sx={{ fontWeight: "bold", color: "primary.main", mb: 1 }}
         >
-          Academic Opportunities Hub
+          Academic Opportunitis Hub
         </Typography>
         <Typography variant="h5" sx={{ color: "text.secondary" }}>
           Find your next research project, internship, or campus job
@@ -351,6 +399,227 @@ const OpportunitiesHub = () => {
           <Tab label="Jobs" icon={<Work />} />
         </Tabs>
       </Paper>
+
+      {/* Suggested Opportunities - Only for Students */}
+      {localStorage.getItem("role") === "Student" && (
+        <>
+          <Typography
+            variant="subtitle1"
+            sx={{ mb: 2, color: "text.secondary" }}
+          >
+            Showing Suggested Opportunities
+          </Typography>
+
+          {loadingSuggestions || loadingProfile ? (
+            <Box sx={{ textAlign: "center", mt: 6 }}>
+              <CircularProgress />
+              <Typography sx={{ mt: 2 }}>Loading suggestions...</Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: "grid", gap: 3 }}>
+              {(() => {
+                let currentSuggestions = [];
+                if (activeTab === 0) currentSuggestions = suggestions.projects;
+                else if (activeTab === 1)
+                  currentSuggestions = suggestions.internships;
+                else if (activeTab === 2) currentSuggestions = suggestions.jobs;
+
+                if (!currentSuggestions || currentSuggestions.length === 0) {
+                  return (
+                    <Typography variant="body2" color="text.secondary">
+                      No suggestions available for this category.
+                    </Typography>
+                  );
+                }
+
+                return currentSuggestions.map((opp) => {
+                  const id =
+                    opp._id ||
+                    opp.id ||
+                    Math.random().toString(36).substr(2, 9);
+                  let type = "internship"; // default type
+                  let title =
+                    opp.title || opp.projectTitle || opp.jobTitle || "";
+
+                  if (opp.jobTitle) type = "job";
+                  else if (opp.projectTitle) type = "project";
+
+                  const organization = opp.organization || "Organization";
+                  const description =
+                    opp.jobDescription ||
+                    opp.projectDescription ||
+                    opp.description ||
+                    "No description provided.";
+                  const skills = opp.requiredSkills || [];
+                  const location =
+                    opp.workLocation ||
+                    opp.officeLocation ||
+                    (opp.collaborationPreferences?.remoteAllowed
+                      ? "Remote"
+                      : "On-site") ||
+                    "Not specified";
+                  const deadline =
+                    opp.applicationDeadline ||
+                    opp.deadline ||
+                    opp.timeline?.applicationDeadline ||
+                    null;
+                  const deadlineDate = deadline ? new Date(deadline) : null;
+                  const compensation =
+                    opp.minSalary && opp.maxSalary
+                      ? `${opp.minSalary} - ${opp.maxSalary} PKR`
+                      : opp.stipend
+                      ? `${opp.stipend.min || 0} - ${opp.stipend.max || 0} ${
+                          opp.stipend.currency || "PKR"
+                        }`
+                      : opp.budget?.amount
+                      ? `${opp.budget.amount} ${opp.budget.currency || "PKR"}`
+                      : "Unpaid / TBD";
+                  const posted =
+                    opp.createdAt && !isNaN(new Date(opp.createdAt).getTime())
+                      ? new Date(opp.createdAt).toDateString()
+                      : "Date unavailable";
+
+                  return (
+                    <Card
+                      key={id}
+                      sx={{
+                        borderRadius: 2,
+                        transition: "0.3s",
+                        "&:hover": { boxShadow: 3 },
+                      }}
+                    >
+                      <CardContent>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="h5" sx={{ mb: 1 }}>
+                              {title}
+                            </Typography>
+                            <Typography
+                              variant="subtitle1"
+                              color="primary"
+                              sx={{ mb: 1 }}
+                            >
+                              {organization}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Typography paragraph sx={{ mt: 2 }}>
+                          {description}
+                        </Typography>
+
+                        {/* Skills */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 1,
+                            mb: 2,
+                          }}
+                        >
+                          {skills.length > 0 ? (
+                            skills.map((skill, i) => (
+                              <Chip
+                                key={i}
+                                label={skill}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ))
+                          ) : (
+                            <Chip label="No skills specified" size="small" />
+                          )}
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        {/* Info row */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 3,
+                            color: "text.secondary",
+                          }}
+                        >
+                          <Typography
+                            sx={{ display: "flex", alignItems: "center" }}
+                          >
+                            <LocationOn sx={{ mr: 0.5, fontSize: 18 }} />
+                            {location}
+                          </Typography>
+                          {deadlineDate && (
+                            <Typography
+                              sx={{ display: "flex", alignItems: "center" }}
+                            >
+                              <AccessTime sx={{ mr: 0.5, fontSize: 18 }} />{" "}
+                              Apply by {deadlineDate.toLocaleDateString()}
+                            </Typography>
+                          )}
+                          <Typography
+                            sx={{ display: "flex", alignItems: "center" }}
+                          >
+                            <AttachMoney sx={{ mr: 0.5, fontSize: 18 }} />{" "}
+                            {compensation}
+                          </Typography>
+                          <Typography variant="caption" sx={{ ml: "auto" }}>
+                            Posted {posted}
+                          </Typography>
+                        </Box>
+
+                        {/* Action buttons */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            mt: 2,
+                          }}
+                        >
+                          {deadlineDate && deadlineDate > new Date() ? (
+                            <Button
+                              variant="contained"
+                              sx={{ mr: 2 }}
+                              href={`/apply/${type}/${id}`}
+                            >
+                              Apply Now
+                            </Button>
+                          ) : (
+                            <Button variant="outlined" sx={{ mr: 2 }} disabled>
+                              Deadline Passed
+                            </Button>
+                          )}
+
+                          <Button
+                            variant="outlined"
+                            sx={{ mr: 2 }}
+                            onClick={() => navigate(`/${type}-details/${id}`)}
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            variant="text"
+                            onClick={() =>
+                              handleOpenComment({ ...opp, id, type })
+                            }
+                          >
+                            Comment
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  );
+                });
+              })()}
+            </Box>
+          )}
+        </>
+      )}
 
       {/* Results Count */}
       <Typography variant="subtitle1" sx={{ mb: 2, color: "text.secondary" }}>
@@ -468,9 +737,26 @@ const OpportunitiesHub = () => {
                     View Details
                   </Button>
 
-                  <Button variant="text" onClick={() => handleOpenComment(opp)}>
+                  <Button
+                    variant="text"
+                    sx={{ mr: 2 }}
+                    onClick={() => handleOpenComment(opp)}
+                  >
                     Comment
                   </Button>
+
+                  {localStorage.getItem("role") === "Academia" && (
+                    <Button
+                      variant="contained"
+                      sx={{ mr: 2 }}
+                      onClick={() => {
+                        setSelectedOpportunity(opp);
+                        setRecommendOpen(true);
+                      }}
+                    >
+                      Recommend
+                    </Button>
+                  )}
                 </Box>
               </CardContent>
             </Card>
@@ -631,6 +917,16 @@ const OpportunitiesHub = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Recommend Dialog */}
+      <RecommendDialog
+        open={recommendOpen}
+        handleClose={() => {
+          setRecommendOpen(false);
+          setSelectedOpportunity(null);
+        }}
+        opportunity={selectedOpportunity}
+      />
     </Box>
   );
 };

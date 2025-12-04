@@ -98,12 +98,23 @@ const ApplicantsPage = () => {
                     </Typography>
                   )}
 
-                  {app.resumeUrl && (
+                  {(app.resumeFilePath || app.resumeUrl) && (
                     <Typography variant="body2" mt={1}>
                       Resume:{" "}
-                      <a href={app.resumeUrl} target="_blank" rel="noreferrer">
-                        View
-                      </a>
+                      {app.resumeFilePath ? (
+                        <a 
+                          href={`http://localhost:5000/uploads/${app.resumeFilePath}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          download
+                        >
+                          Download Resume
+                        </a>
+                      ) : (
+                        <a href={app.resumeUrl} target="_blank" rel="noreferrer">
+                          View Resume (URL)
+                        </a>
+                      )}
                     </Typography>
                   )}
 
@@ -215,6 +226,18 @@ const ApplicantsPage = () => {
                       <MenuItem value="Rejected">Rejected</MenuItem>
                     </Select>
                   </FormControl>
+
+                  {/* Show progress tracking link for accepted project applications */}
+                  {app.status === "Accepted" && type === "project" && (
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      sx={{ mt: 2, width: "100%" }}
+                      onClick={() => navigate(`/student-progress/${id}`)}
+                    >
+                      View Progress
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </Grid>

@@ -19,7 +19,6 @@ const ApplicationPage = () => {
   const [formData, setFormData] = useState({
     opportunityType: type,
     note: "",
-    resumeUrl: "",
     expectedSalary: "",
     experienceLevel: "",
     educationLevel: "",
@@ -31,6 +30,7 @@ const ApplicationPage = () => {
     motivation: "",
   });
 
+  const [resumeFile, setResumeFile] = useState(null);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -76,16 +76,42 @@ const ApplicationPage = () => {
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+      const allowedExtensions = [".pdf", ".doc", ".docx"];
+      const fileExt = "." + file.name.split(".").pop().toLowerCase();
+      
+      if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExt)) {
+        setErrors((prev) => ({
+          ...prev,
+          resumeFile: "Only PDF, DOC, and DOCX files are allowed",
+        }));
+        return;
+      }
+      
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setErrors((prev) => ({
+          ...prev,
+          resumeFile: "File size must be less than 10MB",
+        }));
+        return;
+      }
+      
+      setResumeFile(file);
+      setErrors((prev) => ({ ...prev, resumeFile: "" }));
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.note.trim()) newErrors.note = "Note is required";
-    if (!formData.resumeUrl.trim())
-      newErrors.resumeUrl = "Resume URL is required";
-    else {
-      const urlPattern = /^(https?:\/\/)/;
-      if (!urlPattern.test(formData.resumeUrl))
-        newErrors.resumeUrl = "Resume URL must start with http:// or https://";
+    if (!resumeFile) {
+      newErrors.resumeFile = "Resume file is required";
     }
 
     if (type === "job") {
@@ -126,39 +152,35 @@ const ApplicationPage = () => {
     try {
       const token = localStorage.getItem("token");
 
-      let payload = {
-        opportunityType: type,
-        note: formData.note,
-        resumeUrl: formData.resumeUrl,
-      };
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append("resume", resumeFile);
+      formDataToSend.append("note", formData.note);
+      formDataToSend.append("opportunityType", type);
 
       if (type === "job") {
-        payload = {
-          ...payload,
-          expectedSalary: formData.expectedSalary,
-          experienceLevel: formData.experienceLevel,
-        };
+        formDataToSend.append("expectedSalary", formData.expectedSalary);
+        formDataToSend.append("experienceLevel", formData.experienceLevel);
       } else if (type === "internship") {
-        payload = {
-          ...payload,
-          educationLevel: formData.educationLevel,
-          university: formData.university,
-          graduationDate: formData.graduationDate,
-          learningObjectives: formData.learningObjectives,
-        };
+        formDataToSend.append("educationLevel", formData.educationLevel);
+        formDataToSend.append("university", formData.university);
+        formDataToSend.append("graduationDate", formData.graduationDate);
+        formDataToSend.append("learningObjectives", formData.learningObjectives);
       } else if (type === "project") {
-        payload = {
-          ...payload,
-          areaOfInterest: formData.areaOfInterest,
-          proposedContribution: formData.proposedContribution,
-          motivation: formData.motivation,
-        };
+        formDataToSend.append("areaOfInterest", formData.areaOfInterest);
+        formDataToSend.append("proposedContribution", formData.proposedContribution);
+        formDataToSend.append("motivation", formData.motivation);
       }
 
       await axios.post(
         `http://localhost:5000/api/applications/${type}/${id}`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
+        formDataToSend,
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data"
+          } 
+        }
       );
 
       alert("Application submitted successfully!");
@@ -214,17 +236,38 @@ const ApplicationPage = () => {
         error={!!errors.note}
         helperText={errors.note}
       />
-      <TextField
-        fullWidth
-        required
-        label="Resume URL"
-        name="resumeUrl"
-        value={formData.resumeUrl}
-        onChange={handleChange}
-        margin="normal"
-        error={!!errors.resumeUrl}
-        helperText={errors.resumeUrl}
-      />
+      <Box sx={{ mt: 2, mb: 1 }}>
+        <Typography variant="body2" gutterBottom>
+          Resume Document (PDF, DOC, DOCX) *
+        </Typography>
+        <input
+          accept=".pdf,.doc,.docx"
+          style={{ display: "none" }}
+          id="resume-file-input"
+          type="file"
+          onChange={handleFileChange}
+        />
+        <label htmlFor="resume-file-input">
+          <Button
+            variant="outlined"
+            component="span"
+            fullWidth
+            sx={{ mb: 1 }}
+          >
+            {resumeFile ? resumeFile.name : "Choose Resume File"}
+          </Button>
+        </label>
+        {errors.resumeFile && (
+          <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+            {errors.resumeFile}
+          </Typography>
+        )}
+        {resumeFile && (
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+            Selected: {resumeFile.name} ({(resumeFile.size / 1024).toFixed(2)} KB)
+          </Typography>
+        )}
+      </Box>
 
       {/* Job-specific fields */}
       {type === "job" && (

@@ -17,10 +17,16 @@ exports.applyForOpportunity = async (req, res) => {
       });
     }
 
+    // Handle file upload - resume file will be in req.file if uploaded
+    let resumeFilePath = null;
+    if (req.file) {
+      resumeFilePath = req.file.filename; // Store just the filename, full path will be /uploads/filename
+    }
+
     // Destructure all possible fields from request body
     const {
       note,
-      resumeUrl,
+      resumeUrl, // Keep for backward compatibility but prefer file upload
 
       // Job fields
       positionAppliedFor,
@@ -64,13 +70,21 @@ exports.applyForOpportunity = async (req, res) => {
         .json({ message: "You already applied for this opportunity" });
     }
 
+    // Validate that either resume file or resume URL is provided
+    if (!resumeFilePath && !resumeUrl) {
+      return res.status(400).json({ 
+        message: "Resume is required. Please upload a resume file." 
+      });
+    }
+
     // Save application in Applications DB
     const application = new Application({
       userId,
       opportunityId: id,
       opportunityType: type,
       note,
-      resumeUrl,
+      resumeUrl: resumeFilePath ? null : resumeUrl, // Use URL only if no file uploaded
+      resumeFilePath: resumeFilePath, // Store file path if uploaded
 
       // Job fields
       positionAppliedFor,
@@ -287,6 +301,86 @@ exports.updateApplicationStatus = async (req, res) => {
     // Update status
     application.status = status;
     await application.save();
+
+    // Send notification to student about status update
+    try {
+      const Notification = require("../models/Notification");
+      const User = require("../models/User");
+      const sendEmail = require("../services/emailService");
+      const Profile = require("../models/Profile");
+
+      const student = await User.findById(application.userId);
+      if (student) {
+        // Build opportunity title
+        let opportunityTitle = "";
+        if (application.opportunityType === "job") opportunityTitle = opportunity.jobTitle || "Job";
+        else if (application.opportunityType === "project") opportunityTitle = opportunity.projectTitle || "Project";
+        else if (application.opportunityType === "internship") opportunityTitle = opportunity.title || "Internship";
+
+        const linkBase =
+          application.opportunityType === "job"
+            ? "/job-details/"
+            : application.opportunityType === "project"
+            ? "/project-details/"
+            : "/internship-details/";
+
+        // Create notification
+        await Notification.create({
+          user: application.userId,
+          title: `Application ${status}`,
+          message: `Your application for ${application.opportunityType}: ${opportunityTitle} has been ${status.toLowerCase()}.`,
+          link: `${linkBase}${application.opportunityId}`,
+          meta: {
+            type: application.opportunityType,
+            id: application.opportunityId,
+            title: opportunityTitle,
+            status: status,
+          },
+        });
+
+        // Send email notification
+        if (student.email) {
+          const statusMessage =
+            status === "Accepted"
+              ? "Congratulations! Your application has been accepted."
+              : status === "Rejected"
+              ? "We regret to inform you that your application has been rejected."
+              : `Your application status has been updated to ${status}.`;
+
+          await sendEmail(
+            student.email,
+            `Application ${status}: ${opportunityTitle}`,
+            `<p>Hi ${student.fullName},</p><p>${statusMessage}</p><p>Application for: <strong>${opportunityTitle}</strong> (${application.opportunityType})</p>`
+          );
+        }
+
+        // If application is accepted for a project, initialize progress tracking
+        if (status === "Accepted" && application.opportunityType === "project") {
+          let profile = await Profile.findOne({ user: application.userId });
+          if (profile) {
+            // Check if progress tracking already exists for this application
+            const existingProgress = profile.progressTracking.find(
+              (entry) => entry.applicationId.toString() === application._id.toString()
+            );
+
+            if (!existingProgress) {
+              // Initialize progress tracking
+              profile.progressTracking.push({
+                applicationId: application._id,
+                projectId: opportunity._id,
+                projectTitle: opportunity.projectTitle,
+                progressUpdates: [],
+                currentStatus: "Not Started",
+                createdAt: new Date(),
+              });
+              await profile.save();
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Notification/email for status update failed:", e.message);
+    }
 
     res.json({ success: true, application });
   } catch (err) {
