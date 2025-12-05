@@ -316,6 +316,16 @@ const Navbar = () => {
               My Jobs
             </MenuItem>
           )}
+          {(role === "industry official" || role === "Industry Official") && (
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                navigate("/industry-submissions");
+              }}
+            >
+              Student Submissions
+            </MenuItem>
+          )}
           {role === "student" && (
             <MenuItem
               onClick={() => {

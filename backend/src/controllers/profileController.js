@@ -101,7 +101,7 @@ const createOrUpdateProfile = async (req, res) => {
   }
 };
 
-// 👉 Add this
+
 const getProfile = async (req, res) => {
   try {
     const profile = await Profile.findOne({ user: req.user.id }).populate(
@@ -653,7 +653,7 @@ const getProjectsWithProgress = async (req, res) => {
   }
 };
 
-// Upload submission document for completed project (100% progress)
+// Upload submission document for completed project (100% progress) OR Industry Official projects
 const uploadSubmission = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -695,41 +695,79 @@ const uploadSubmission = async (req, res) => {
       return res.status(400).json({ message: "Can only upload submission for accepted applications" });
     }
 
+    // Check if this is an Industry Official project
+    const project = await Project.findById(application.opportunityId).populate("postedBy", "roleID");
+    if (!project) {
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const isIndustryOfficialProject = project.postedBy && 
+      (project.postedBy.roleID === "Industry Official" || project.postedBy.role === "industry official");
+
     // Find profile
     let profile = await Profile.findOne({ user: userId });
     if (!profile) {
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
-      return res.status(404).json({ message: "Profile not found" });
+      return res.status(404).json({ message: "Profile not found. Please complete your profile first." });
     }
 
-    // Find progress entry
-    const progressIndex = profile.progressTracking.findIndex(
+    // Find or create progress entry
+    let progressIndex = profile.progressTracking.findIndex(
       (entry) => entry.applicationId.toString() === applicationId.toString()
     );
 
     if (progressIndex === -1) {
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+      // For Industry Official projects, create a new progress entry without progress updates
+      if (isIndustryOfficialProject) {
+        const newProgressEntry = {
+          applicationId: application._id,
+          projectId: project._id,
+          projectTitle: project.projectTitle,
+          progressUpdates: [],
+          currentStatus: "In Progress",
+          createdAt: new Date(),
+        };
+        // Use $push to add the new progress entry
+        await Profile.findOneAndUpdate(
+          { user: userId },
+          { $push: { progressTracking: newProgressEntry } },
+          { new: true, runValidators: false }
+        );
+        // Fetch the updated profile to get the correct index
+        profile = await Profile.findOne({ user: userId });
+        progressIndex = profile.progressTracking.findIndex(
+          (entry) => entry.applicationId.toString() === applicationId.toString()
+        );
+      } else {
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(404).json({ message: "Progress tracking not found for this application" });
       }
-      return res.status(404).json({ message: "Progress tracking not found for this application" });
     }
 
     const progressEntry = profile.progressTracking[progressIndex];
 
-    // Check if progress is 100% or status is Completed
-    const latestPercentage = progressEntry.progressUpdates && progressEntry.progressUpdates.length > 0
-      ? progressEntry.progressUpdates[progressEntry.progressUpdates.length - 1].percentage
-      : 0;
+    // For Academia projects, check if progress is 100% or status is Completed
+    // For Industry Official projects, skip this check
+    if (!isIndustryOfficialProject) {
+      const latestPercentage = progressEntry.progressUpdates && progressEntry.progressUpdates.length > 0
+        ? progressEntry.progressUpdates[progressEntry.progressUpdates.length - 1].percentage
+        : 0;
 
-    if (latestPercentage < 100 && progressEntry.currentStatus !== "Completed") {
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+      if (latestPercentage < 100 && progressEntry.currentStatus !== "Completed") {
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(400).json({ 
+          message: "Submission can only be uploaded when progress is 100% or status is Completed" 
+        });
       }
-      return res.status(400).json({ 
-        message: "Submission can only be uploaded when progress is 100% or status is Completed" 
-      });
     }
 
     // Delete old submission if exists
@@ -1025,6 +1063,334 @@ const replyToRemark = async (req, res) => {
   }
 };
 
+// Industry Official: Get student submissions for their projects
+const getIndustryProjectSubmissions = async (req, res) => {
+  try {
+    const industryId = req.user.id;
+    const { projectId } = req.params;
+
+    // Verify the project belongs to this industry official
+    const project = await Project.findById(projectId).populate("postedBy", "roleID role");
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Check if project belongs to this industry official
+    // Handle both populated and non-populated postedBy
+    const postedById = project.postedBy?._id?.toString() || project.postedBy?.toString() || project.postedBy;
+    if (postedById.toString() !== industryId.toString()) {
+      return res.status(403).json({ message: "Not authorized to view submissions for this project" });
+    }
+
+    // Verify it's an Industry Official project
+    // If postedBy is populated, check roleID/role; otherwise fetch the user
+    let isIndustryOfficialProject = false;
+    if (project.postedBy && typeof project.postedBy === 'object') {
+      isIndustryOfficialProject = project.postedBy.roleID === "Industry Official" || 
+                                   project.postedBy.role === "industry official";
+    } else {
+      // If not populated, fetch the user to check role
+      const User = require("../models/User");
+      const poster = await User.findById(project.postedBy);
+      if (poster) {
+        isIndustryOfficialProject = poster.roleID === "Industry Official" || 
+                                     poster.role === "industry official";
+      }
+    }
+    
+    if (!isIndustryOfficialProject) {
+      return res.status(400).json({ message: "This endpoint is only for Industry Official projects" });
+    }
+
+    // Find all accepted applications for this project
+    const acceptedApplications = await Application.find({
+      opportunityId: projectId,
+      opportunityType: "project",
+      status: "Accepted",
+    }).populate("userId", "fullName email");
+
+    // Get submissions for each student
+    const studentsSubmissions = await Promise.all(
+      acceptedApplications.map(async (application) => {
+        const profile = await Profile.findOne({ user: application.userId._id });
+        if (!profile) {
+          return {
+            student: {
+              _id: application.userId._id,
+              fullName: application.userId.fullName,
+              email: application.userId.email,
+            },
+            applicationId: application._id,
+            submission: null,
+            remarks: [],
+          };
+        }
+
+        const progressEntry = profile.progressTracking.find(
+          (entry) => entry.applicationId.toString() === application._id.toString()
+        );
+
+        return {
+          student: {
+            _id: application.userId._id,
+            fullName: application.userId.fullName,
+            email: application.userId.email,
+          },
+          applicationId: application._id,
+          submission: progressEntry?.submissionDocument || null,
+          remarks: progressEntry?.remarks || [],
+        };
+      })
+    );
+
+    res.json({
+      project: {
+        _id: project._id,
+        projectTitle: project.projectTitle,
+      },
+      studentsSubmissions,
+    });
+  } catch (err) {
+    console.error("Get industry project submissions error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Industry Official: Get all projects with student submissions
+const getIndustryProjectsWithSubmissions = async (req, res) => {
+  try {
+    const industryId = req.user.id;
+
+    // Get all projects posted by this industry official
+    const projects = await Project.find({ postedBy: industryId })
+      .select("projectTitle createdAt timeline")
+      .sort({ createdAt: -1 });
+
+    // For each project, get accepted applications count and submissions summary
+    const projectsWithSubmissions = await Promise.all(
+      projects.map(async (project) => {
+        const acceptedApplications = await Application.find({
+          opportunityId: project._id,
+          opportunityType: "project",
+          status: "Accepted",
+        });
+
+        const studentsWithSubmissions = await Promise.all(
+          acceptedApplications.map(async (application) => {
+            const profile = await Profile.findOne({ user: application.userId });
+            if (!profile) return null;
+
+            const progressEntry = profile.progressTracking.find(
+              (entry) => entry.applicationId.toString() === application._id.toString()
+            );
+
+            if (!progressEntry) return null;
+
+            const user = await User.findById(application.userId).select("fullName email");
+            
+            return {
+              student: {
+                _id: user._id,
+                fullName: user.fullName,
+                email: user.email,
+              },
+              applicationId: application._id,
+              submission: progressEntry.submissionDocument || null,
+              remarks: progressEntry.remarks || [],
+            };
+          })
+        );
+
+        return {
+          project: {
+            _id: project._id,
+            projectTitle: project.projectTitle,
+            createdAt: project.createdAt,
+          },
+          acceptedCount: acceptedApplications.length,
+          studentsSubmissions: studentsWithSubmissions.filter((s) => s !== null),
+        };
+      })
+    );
+
+    res.json({ projectsWithSubmissions });
+  } catch (err) {
+    console.error("Get industry projects with submissions error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Industry Official: Download submission document
+const downloadIndustrySubmission = async (req, res) => {
+  try {
+    const { applicationId } = req.params;
+    const industryId = req.user.id;
+
+    // Find the application
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // Verify the project belongs to this industry official
+    const project = await Project.findById(application.opportunityId).populate("postedBy", "roleID role");
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Check if project belongs to this industry official
+    // Handle both populated and non-populated postedBy
+    const postedById = project.postedBy?._id?.toString() || project.postedBy?.toString() || project.postedBy;
+    if (postedById.toString() !== industryId.toString()) {
+      return res.status(403).json({ message: "Not authorized to download this submission" });
+    }
+
+    // Find student profile
+    const profile = await Profile.findOne({ user: application.userId });
+    if (!profile) {
+      return res.status(404).json({ message: "Student profile not found" });
+    }
+
+    // Find progress entry
+    const progressEntry = profile.progressTracking.find(
+      (entry) => entry.applicationId.toString() === applicationId.toString()
+    );
+
+    if (!progressEntry || !progressEntry.submissionDocument) {
+      return res.status(404).json({ message: "Submission not found" });
+    }
+
+    const filePath = progressEntry.submissionDocument.filePath;
+    const originalFileName = progressEntry.submissionDocument.originalFileName;
+
+    if (!filePath) {
+      return res.status(404).json({ message: "Submission file path not found" });
+    }
+
+    // Resolve the file path (handle both absolute and relative paths)
+    const path = require("path");
+    let resolvedPath = filePath;
+    if (!path.isAbsolute(filePath)) {
+      // If relative path, resolve from project root
+      resolvedPath = path.join(__dirname, "../../", filePath);
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      console.error(`File not found at path: ${resolvedPath}`);
+      return res.status(404).json({ 
+        message: "Submission file not found on server",
+        details: `File path: ${resolvedPath}`
+      });
+    }
+
+    // Send file
+    res.download(resolvedPath, originalFileName, (err) => {
+      if (err) {
+        console.error("Download error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: "Error downloading file", error: err.message });
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Download industry submission error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Industry Official: Add remark to student submission
+const addIndustryRemark = async (req, res) => {
+  try {
+    const industryId = req.user.id;
+    const { applicationId, remark } = req.body;
+
+    if (!applicationId || !remark || !remark.trim()) {
+      return res.status(400).json({ message: "Application ID and remark are required" });
+    }
+
+    // Find the application
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // Verify the project belongs to this industry official
+    const project = await Project.findById(application.opportunityId).populate("postedBy", "roleID role");
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Check if project belongs to this industry official
+    // Handle both populated and non-populated postedBy
+    const postedById = project.postedBy?._id?.toString() || project.postedBy?.toString() || project.postedBy;
+    if (postedById.toString() !== industryId.toString()) {
+      return res.status(403).json({ message: "Not authorized to add remarks for this project" });
+    }
+
+    // Find student profile
+    const profile = await Profile.findOne({ user: application.userId });
+    if (!profile) {
+      return res.status(404).json({ message: "Student profile not found" });
+    }
+
+    // Find progress entry
+    const progressIndex = profile.progressTracking.findIndex(
+      (entry) => entry.applicationId.toString() === applicationId.toString()
+    );
+
+    if (progressIndex === -1) {
+      return res.status(404).json({ message: "Progress tracking not found for this application" });
+    }
+
+    // Get industry official user details
+    const industryUser = await User.findById(industryId).select("fullName");
+    if (!industryUser) {
+      return res.status(404).json({ message: "Industry official user not found" });
+    }
+
+    // Add remark using MongoDB update operators
+    await Profile.findOneAndUpdate(
+      { user: application.userId },
+      {
+        $push: {
+          [`progressTracking.${progressIndex}.remarks`]: {
+            remark: remark.trim(),
+            addedBy: industryId,
+            addedByName: industryUser.fullName,
+            addedAt: new Date(),
+          },
+        },
+      },
+      { new: true, runValidators: false }
+    );
+
+    // Send notification to student
+    try {
+      const Notification = require("../models/Notification");
+      await Notification.create({
+        user: application.userId,
+        title: "New Remark on Your Submission",
+        message: `You have received a new remark from ${industryUser.fullName} regarding your submission for ${project.projectTitle}.`,
+        link: `/profile/me`,
+        meta: {
+          type: "submission_remark",
+          projectId: project._id,
+          projectTitle: project.projectTitle,
+        },
+      });
+    } catch (e) {
+      console.warn("Notification for remark failed:", e.message);
+    }
+
+    res.json({
+      message: "Remark added successfully",
+    });
+  } catch (err) {
+    console.error("Add industry remark error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // 👉 Export properly
 module.exports = {
   createOrUpdateProfile,
@@ -1041,4 +1407,8 @@ module.exports = {
   downloadSubmission,
   addRemark,
   replyToRemark,
+  getIndustryProjectSubmissions,
+  getIndustryProjectsWithSubmissions,
+  downloadIndustrySubmission,
+  addIndustryRemark,
 };

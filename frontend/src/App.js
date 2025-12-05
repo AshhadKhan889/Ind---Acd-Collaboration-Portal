@@ -45,6 +45,7 @@ import BlockUser from "./components/BlockUsers";
 import ActivateAccount from "./components/ActivateAccount";
 import ResendActivation from "./components/ResendActivation";
 import StudentProgressTracking from "./components/StudentProgressTracking";
+import IndustrySubmissions from "./components/IndustrySubmissions";
 
 function App() {
   return (
@@ -142,6 +143,24 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Academia"]}>
                 <StudentProgressTracking />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Industry Submissions (Industry Official only) */}
+          <Route
+            path="/industry-submissions"
+            element={
+              <ProtectedRoute allowedRoles={["Industry Official"]}>
+                <IndustrySubmissions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/industry-submissions/:projectId"
+            element={
+              <ProtectedRoute allowedRoles={["Industry Official"]}>
+                <IndustrySubmissions />
               </ProtectedRoute>
             }
           />

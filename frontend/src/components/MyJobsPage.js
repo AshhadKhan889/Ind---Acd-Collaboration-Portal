@@ -258,6 +258,15 @@ const MyJobsPage = () => {
                     </Button>
                     <Button
                       size="small"
+                      color="success"
+                      onClick={() =>
+                        navigate(`/industry-submissions/${project._id}`)
+                      }
+                    >
+                      View Submissions
+                    </Button>
+                    <Button
+                      size="small"
                       onClick={() => handleViewComments("project", project._id)}
                     >
                       View Comments

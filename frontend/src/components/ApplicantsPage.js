@@ -21,6 +21,7 @@ const ApplicantsPage = () => {
   const { type, id } = useParams(); // type = job/project/internship
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isIndustryOfficialProject, setIsIndustryOfficialProject] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,10 +31,54 @@ const ApplicantsPage = () => {
         const headers = { Authorization: `Bearer ${token}` };
 
         const res = await axios.get(`/api/applications/${type}/${id}/applicants`, {
-  headers,
-});
+          headers,
+        });
 
         setApplicants(res.data || []);
+
+        // If it's a project, check if it's an Industry Official project
+        if (type === "project") {
+          try {
+            const projectRes = await axios.get(`/api/projects/${id}`, {
+              headers,
+            });
+            const project = projectRes.data?.project || projectRes.data;
+            
+            if (project && project.postedBy) {
+              // Check if postedBy is populated (object) or just an ID
+              let isIndustryOfficial = false;
+              
+              if (typeof project.postedBy === 'object' && project.postedBy._id) {
+                // postedBy is populated
+                isIndustryOfficial = project.postedBy.roleID === "Industry Official" || 
+                                     project.postedBy.role === "industry official" ||
+                                     project.postedBy.roleID === "industry official";
+              } else {
+                // postedBy is just an ID, check logged-in user's role as fallback
+                const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+                const user = userStr ? JSON.parse(userStr) : null;
+                if (user) {
+                  isIndustryOfficial = user.roleID === "Industry Official" || 
+                                      user.role === "industry official" ||
+                                      user.roleID === "industry official";
+                }
+              }
+              
+              setIsIndustryOfficialProject(isIndustryOfficial);
+            }
+          } catch (err) {
+            console.error("Error fetching project info:", err);
+            // On error, check logged-in user's role as fallback
+            const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+            const user = userStr ? JSON.parse(userStr) : null;
+            if (user) {
+              const isIndustryOfficial = user.roleID === "Industry Official" || 
+                                        user.role === "industry official" ||
+                                        user.roleID === "industry official";
+              setIsIndustryOfficialProject(isIndustryOfficial);
+            }
+          }
+        }
       } catch (err) {
         console.error(err.response?.data || err.message);
       } finally {
@@ -227,8 +272,10 @@ const ApplicantsPage = () => {
                     </Select>
                   </FormControl>
 
-                  {/* Show progress tracking link for accepted project applications */}
-                  {app.status === "Accepted" && type === "project" && (
+                  {/* Show progress tracking link for accepted project applications (only for Academia projects, not Industry Official) */}
+                  {app.status === "Accepted" && 
+                   type === "project" && 
+                   isIndustryOfficialProject === false && (
                     <Button
                       variant="outlined"
                       color="secondary"

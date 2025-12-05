@@ -36,6 +36,7 @@ import axios from "axios";
 const ProgressTrackingSection = ({ userId }) => {
   const [progressData, setProgressData] = useState([]);
   const [acceptedApplications, setAcceptedApplications] = useState([]);
+  const [projectInfo, setProjectInfo] = useState({}); // { projectId: { postedBy: { roleID } } }
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [uploadingSubmission, setUploadingSubmission] = useState(false);
@@ -87,6 +88,23 @@ const ProgressTrackingSection = ({ userId }) => {
         (app) => app.status === "Accepted" && app.opportunityType === "project"
       );
       setAcceptedApplications(acceptedProjects);
+      
+      // Fetch project information to check if they're Industry Official projects
+      const projectInfoMap = {};
+      for (const app of acceptedProjects) {
+        try {
+          const projectRes = await axios.get(`/api/projects/${app.opportunityId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const project = projectRes.data?.project || projectRes.data;
+          if (project && project.postedBy) {
+            projectInfoMap[app.opportunityId] = project;
+          }
+        } catch (err) {
+          console.error(`Error fetching project ${app.opportunityId}:`, err);
+        }
+      }
+      setProjectInfo(projectInfoMap);
       console.log("Accepted project applications:", acceptedProjects);
     } catch (err) {
       console.error("Error fetching accepted applications:", err);
@@ -366,13 +384,27 @@ const ProgressTrackingSection = ({ userId }) => {
           </Stack>
         </Paper>
 
-        {/* Submission Upload Section (for 100% progress) */}
-        {allProjects.some((p) => {
-          const latestUpdate = p.progressUpdates && p.progressUpdates.length > 0
-            ? p.progressUpdates[p.progressUpdates.length - 1]
-            : null;
-          return latestUpdate?.percentage === 100 || p.currentStatus === "Completed";
-        }) && (
+        {/* Submission Upload Section (for 100% progress OR Industry Official projects) */}
+        {(() => {
+          // Check if there are any projects eligible for submission
+          const hasCompletedProjects = allProjects.some((p) => {
+            if (p.applicationId?.status !== "Accepted") return false;
+            const latestUpdate = p.progressUpdates && p.progressUpdates.length > 0
+              ? p.progressUpdates[p.progressUpdates.length - 1]
+              : null;
+            return latestUpdate?.percentage === 100 || p.currentStatus === "Completed";
+          });
+          
+          const hasIndustryProjects = allProjects.some((p) => {
+            if (p.applicationId?.status !== "Accepted") return false;
+            const project = projectInfo[p.projectId?._id || p.projectId];
+            const isIndustryOfficial = project?.postedBy && 
+              (project.postedBy.roleID === "Industry Official" || project.postedBy.role === "industry official");
+            return isIndustryOfficial;
+          });
+          
+          return hasCompletedProjects || hasIndustryProjects;
+        })() && (
           <>
             <Divider sx={{ my: 3 }} />
             <Paper sx={{ p: 2, mb: 3, backgroundColor: "#e3f2fd" }}>
@@ -380,20 +412,33 @@ const ProgressTrackingSection = ({ userId }) => {
                 📎 Upload Project Submission
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Upload your completed project files (ZIP, RAR, PDF, DOC, DOCX - Max 100MB)
+                Upload your project files (ZIP, RAR, PDF, DOC, DOCX - Max 100MB)
+                <br />
               </Typography>
               <Stack spacing={2}>
                 <FormControl fullWidth>
-                  <InputLabel>Select Completed Project</InputLabel>
+                  <InputLabel>Select Project</InputLabel>
                   <Select
                     value={submissionApplicationId}
-                    label="Select Completed Project"
+                    label="Select Project"
                     onChange={(e) => setSubmissionApplicationId(e.target.value)}
                   >
                     {allProjects
                       .filter((p) => {
-                        // Only show completed projects that are still accepted (not withdrawn)
+                        // Only show projects that are still accepted (not withdrawn)
                         if (p.applicationId?.status !== "Accepted") return false;
+                        
+                        // Check if it's an Industry Official project
+                        const project = projectInfo[p.projectId?._id || p.projectId];
+                        const isIndustryOfficial = project?.postedBy && 
+                          (project.postedBy.roleID === "Industry Official" || project.postedBy.role === "industry official");
+                        
+                        if (isIndustryOfficial) {
+                          // Industry Official projects can always upload submissions
+                          return true;
+                        }
+                        
+                        // For Academia projects, require 100% progress
                         const latestUpdate = p.progressUpdates && p.progressUpdates.length > 0
                           ? p.progressUpdates[p.progressUpdates.length - 1]
                           : null;
@@ -402,9 +447,14 @@ const ProgressTrackingSection = ({ userId }) => {
                       .map((progress) => {
                         const appId = progress.applicationId?._id || progress.applicationId;
                         const appIdString = appId?.toString();
+                        const project = projectInfo[progress.projectId?._id || progress.projectId];
+                        const isIndustryOfficial = project?.postedBy && 
+                          (project.postedBy.roleID === "Industry Official" || project.postedBy.role === "industry official");
                         return (
                           <MenuItem key={appIdString} value={appIdString}>
-                            {progress.projectTitle} {progress.submissionDocument && "✓ Submitted"}
+                            {progress.projectTitle} 
+                            {isIndustryOfficial && " (Industry Official)"}
+                            {progress.submissionDocument && " ✓ Submitted"}
                           </MenuItem>
                         );
                       })}

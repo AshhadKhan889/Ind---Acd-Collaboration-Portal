@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Grid, Typography, Card, CardContent, List, ListItem, ListItemText } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { Box, Grid, Typography, Card, CardContent, List, ListItem, ListItemText, Button } from '@mui/material';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import axios from 'axios';
 
 const IndustryDashboard = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState({
     postedOpportunities: { jobs: [], projects: [], internships: [] },
     upcomingDeadlines: { jobs: [], projects: [], internships: [] },
@@ -56,9 +59,20 @@ const IndustryDashboard = () => {
 
   return (
     <Box p={3}>
-      <Typography variant="h4" gutterBottom>
-        Industry Dashboard
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Industry Dashboard
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AssignmentIcon />}
+          onClick={() => navigate('/industry-submissions')}
+          sx={{ ml: 2 }}
+        >
+          View Student Submissions
+        </Button>
+      </Box>
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
           {error}
