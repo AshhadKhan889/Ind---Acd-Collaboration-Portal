@@ -17,6 +17,7 @@ This platform connects students, academia, and industry partners for:
 - Comments and discussions (public and private)
 - Forum discussions and community engagement
 - Notifications and account management
+- Project progress tracking between Students and Academia
 
 KEY FEATURES:
 1. **Opportunities**: Users can browse jobs, internships, and projects via "View Opportunities"
@@ -29,6 +30,10 @@ KEY FEATURES:
 8. **Posting**: Industry and Academia can post opportunities via "Post an Opportunity"
 9. **Applicant Management**: Posters can review applicants via "My Jobs" → Applicants page
 10. **Notifications**: Users receive alerts for application status, comments, and account actions
+11. **Project Tracking**:
+   - Students update project progress (milestones, notes, percentage)
+   - Only Academia users can monitor progress and leave remarks
+   - Industry users cannot edit or comment on progress
 
 CRITICAL RULES:
 - ONLY answer questions related to this platform's features, navigation, usage, AND questions about this chatbot itself
@@ -142,12 +147,69 @@ const FAQ_ENTRIES = [
       "What happens after I withdraw?",
     ],
   },
+
+  {
+    id: "project-tracking",
+    matcher: (lower) =>
+      lower.includes("project") &&
+      (lower.includes("tracking") || lower.includes("progress")),
+    topic: "project-tracking",
+    response:
+      "In Project Tracking, the Student updates the project progress by adding milestones, notes, or completion percentage. Only Academia users can monitor the progress and leave remarks. Industry Officials cannot comment or modify project progress.",
+    suggestions: [
+      "Who can monitor project progress?",
+      "How does Academia give remarks?",
+      "Can Industry see project tracking?",
+    ],
+  },
+
+  {
+    id: "project-submission",
+    matcher: (lower) =>
+      lower.includes("project") &&
+      (lower.includes("submission") || lower.includes("submit")),
+    topic: "project-submission",
+    response:
+      "After the project is completed, the Student uploads the final project submission. The submission is visible to Academia and Industry Officials. Student can also reupload the submission if any changes are required by the Acdemia or Industry Official",
+    suggestions: [
+      "Who can view my project submission?",
+      "Can I edit my submission?",
+      "Where do I upload the project?",
+    ],
+  },
+
+  {
+    id: "recommendation-system",
+    matcher: (lower) => lower.includes("recommend"),
+    topic: "recommendation",
+    response:
+      "The Recommendation System allows Academia users to recommend jobs, internships, or projects to Students. Recommendations are skill-based and can be restricted to students of the same university, such as Bahria University.",
+    suggestions: [
+      "Who can recommend opportunities?",
+      "Are recommendations university-specific?",
+      "Where do students see recommendations?",
+    ],
+  },
+
+  {
+    id: "suggestions-system",
+    matcher: (lower) => lower.includes("suggest"),
+    topic: "suggestions",
+    response:
+      "The Suggestions System automatically displays opportunities to Students based on their skills and profile. These suggestions appear on the Opportunities page in the Showing Suggested Opportunities section to help students discover relevant opportunities.",
+    suggestions: [
+      "How are suggestions generated?",
+      "Do skills affect suggestions?",
+      "Where do I see suggested opportunities?",
+    ],
+  },
+
   {
     id: "search-opportunities",
     keywords: ["search", "opportunit"],
     topic: "opportunities",
     response:
-      "Use `View Opportunities` to search. The search bar filters by keyword (e.g., \"AI\"), while tabs let you switch between Projects, Internships, and Jobs. You can also filter by skills, deadlines, and organization right from that page.",
+      'Use `View Opportunities` to search. The search bar filters by keyword (e.g., "AI"), while tabs let you switch between Projects, Internships, and Jobs. You can also filter by skills, deadlines, and organization right from that page.',
     suggestions: [
       "How do I apply once I find an opportunity?",
       "Can I bookmark or save an opportunity?",
@@ -366,7 +428,7 @@ const matchFAQ = (message) => {
 // Generate suggestions based on the conversation context
 const generateSuggestions = (topic, message) => {
   const messageLower = message.toLowerCase();
-  
+
   if (messageLower.includes("application") || messageLower.includes("apply")) {
     return [
       "Where can I see my application status?",
@@ -374,7 +436,7 @@ const generateSuggestions = (topic, message) => {
       "What should I include in my application?",
     ];
   }
-  
+
   if (messageLower.includes("comment") || messageLower.includes("discussion")) {
     return [
       "What's the difference between public and private comments?",
@@ -382,7 +444,7 @@ const generateSuggestions = (topic, message) => {
       "Can I edit or delete my comment?",
     ];
   }
-  
+
   if (messageLower.includes("profile") || messageLower.includes("complete")) {
     return [
       "How do I update my professional history?",
@@ -390,7 +452,7 @@ const generateSuggestions = (topic, message) => {
       "Who can see my profile?",
     ];
   }
-  
+
   if (messageLower.includes("post") || messageLower.includes("opportunity")) {
     return [
       "How do I review applicants?",
@@ -398,15 +460,21 @@ const generateSuggestions = (topic, message) => {
       "How do I manage my posted opportunities?",
     ];
   }
-  
-  if (messageLower.includes("chatbot") || messageLower.includes("assistant") || messageLower.includes("how it works") || messageLower.includes("implementation") || messageLower.includes("built")) {
+
+  if (
+    messageLower.includes("chatbot") ||
+    messageLower.includes("assistant") ||
+    messageLower.includes("how it works") ||
+    messageLower.includes("implementation") ||
+    messageLower.includes("built")
+  ) {
     return [
       "What AI model does this chatbot use?",
       "How does the domain filtering work?",
       "What happens if the API is unavailable?",
     ];
   }
-  
+
   // Default suggestions
   return [
     "How do I apply for an opportunity?",
@@ -418,20 +486,83 @@ const generateSuggestions = (topic, message) => {
 // Check if message is relevant to the platform domain
 const isDomainRelevant = (message) => {
   const domainKeywords = [
-    "opportunity", "opportunities", "job", "jobs", "internship", "internships",
-    "project", "projects", "application", "applications", "apply", "student",
-    "industry", "academia", "dashboard", "profile", "collaboration", "forum",
-    "notification", "history", "comment", "comments", "visibility", "private",
-    "public", "posting", "post", "partner", "mentor", "deadline", "verify",
-    "activation", "account", "role", "applicants", "withdraw", "status",
-    "upload", "document", "verification", "browse", "search", "filter", "track",
-    "review", "manage", "submit", "complete", "update", "edit", "delete",
-    "chatbot", "assistant", "ai", "how it works", "implementation", "built",
-    "how did you", "how does this", "technical", "architecture",
+    "opportunity",
+    "opportunities",
+    "job",
+    "jobs",
+    "internship",
+    "internships",
+    "project",
+    "projects",
+    "application",
+    "applications",
+    "apply",
+    "student",
+    "industry",
+    "academia",
+    "dashboard",
+    "profile",
+    "collaboration",
+    "forum",
+    "notification",
+    "history",
+    "comment",
+    "comments",
+    "visibility",
+    "private",
+    "public",
+    "posting",
+    "post",
+    "partner",
+    "mentor",
+    "deadline",
+    "verify",
+    "activation",
+    "account",
+    "role",
+    "applicants",
+    "withdraw",
+    "status",
+    "upload",
+    "document",
+    "verification",
+    "browse",
+    "search",
+    "filter",
+    "track",
+    "review",
+    "manage",
+    "submit",
+    "complete",
+    "update",
+    "edit",
+    "delete",
+    "chatbot",
+    "assistant",
+    "ai",
+    "how it works",
+    "implementation",
+    "built",
+    "how did you",
+    "how does this",
+    "technical",
+    "architecture",
+    "progress",
+    "tracking",
+    "milestone",
+    "submission",
+    "final project",
+    "recommendation",
+    "recommend",
+    "suggestions",
+    "suggested",
+    "skill based",
+    "project progress",
+    "project submission",
   ];
-  
+
   const messageLower = message.toLowerCase();
-  return domainKeywords.some(keyword => messageLower.includes(keyword));
+  return domainKeywords.some((keyword) => messageLower.includes(keyword));
 };
 
 // Check if question is about the chatbot itself
@@ -465,7 +596,7 @@ const isChatbotQuestion = (message) => {
     "why prompt engineering",
     "why not train",
   ];
-  return chatbotKeywords.some(keyword => messageLower.includes(keyword));
+  return chatbotKeywords.some((keyword) => messageLower.includes(keyword));
 };
 
 // Main function to get chatbot response using AI model
@@ -478,17 +609,20 @@ const getChatbotResponse = async (message, history = []) => {
 
     // Check if OpenAI API key is configured
     if (!process.env.OPENAI_API_KEY) {
-      console.warn("OPENAI_API_KEY not configured, falling back to basic response");
+      console.warn(
+        "OPENAI_API_KEY not configured, falling back to basic response"
+      );
       return getFallbackResponse(message);
     }
 
     // Special handling: Chatbot questions are ALWAYS allowed (they're about the platform's chatbot)
     const isAboutChatbot = isChatbotQuestion(message);
-    
+
     // Check domain relevance (but allow chatbot questions through)
     if (!isAboutChatbot && !isDomainRelevant(message)) {
       return {
-        reply: "I'm here to help with the Industry-Academia Collaboration Platform—jobs, internships, projects, applications, profiles, comments, and community features. I can't assist with topics outside this platform, but I'm happy to help you navigate and use the platform effectively.",
+        reply:
+          "I'm here to help with the Industry-Academia Collaboration Platform—jobs, internships, projects, applications, profiles, comments, and community features. I can't assist with topics outside this platform, but I'm happy to help you navigate and use the platform effectively.",
         topic: "out-of-domain",
         relevance: "none",
         suggestions: [
@@ -517,7 +651,8 @@ const getChatbotResponse = async (message, history = []) => {
       max_tokens: 500,
     });
 
-    const reply = completion.choices[0]?.message?.content?.trim() || 
+    const reply =
+      completion.choices[0]?.message?.content?.trim() ||
       "I apologize, but I couldn't generate a response. Please try rephrasing your question.";
 
     // Generate suggestions based on context
@@ -531,7 +666,7 @@ const getChatbotResponse = async (message, history = []) => {
     };
   } catch (error) {
     console.error("Error calling OpenAI API:", error);
-    
+
     // Fallback to basic response if API fails
     return getFallbackResponse(message);
   }
@@ -544,11 +679,12 @@ const getFallbackResponse = (message) => {
   if (faqReply) {
     return faqReply;
   }
-  
+
   // Handle chatbot questions in fallback mode
   if (isChatbotQuestion(message)) {
     return {
-      reply: "This chatbot uses OpenAI's GPT-3.5-turbo model, a pre-trained large language model. It's implemented using prompt engineering with a domain-specific system prompt (no custom training). Architecture: React frontend → Express/Node.js backend → OpenAI API. Domain filtering checks questions before calling the API, and there's a fallback mechanism if the API is unavailable.",
+      reply:
+        "This chatbot uses OpenAI's GPT-3.5-turbo model, a pre-trained large language model. It's implemented using prompt engineering with a domain-specific system prompt (no custom training). Architecture: React frontend → Express/Node.js backend → OpenAI API. Domain filtering checks questions before calling the API, and there's a fallback mechanism if the API is unavailable.",
       topic: "chatbot-implementation",
       relevance: "high",
       suggestions: [
@@ -558,11 +694,17 @@ const getFallbackResponse = (message) => {
       ],
     };
   }
-  
+
   // Basic keyword matching for fallback
-  if (messageLower.includes("application") && (messageLower.includes("where") || messageLower.includes("see") || messageLower.includes("track"))) {
+  if (
+    messageLower.includes("application") &&
+    (messageLower.includes("where") ||
+      messageLower.includes("see") ||
+      messageLower.includes("track"))
+  ) {
     return {
-      reply: "You can view all your applications on the 'Applications' page in the navigation menu. It shows opportunity titles, posting owners, application dates, and current status. You can also withdraw applications from there. The Student Dashboard provides a quick overview with upcoming deadlines.",
+      reply:
+        "You can view all your applications on the 'Applications' page in the navigation menu. It shows opportunity titles, posting owners, application dates, and current status. You can also withdraw applications from there. The Student Dashboard provides a quick overview with upcoming deadlines.",
       topic: "applications-tracking",
       relevance: "medium",
       suggestions: [
@@ -572,10 +714,16 @@ const getFallbackResponse = (message) => {
       ],
     };
   }
-  
-  if (messageLower.includes("comment") && (messageLower.includes("public") || messageLower.includes("private") || messageLower.includes("difference"))) {
+
+  if (
+    messageLower.includes("comment") &&
+    (messageLower.includes("public") ||
+      messageLower.includes("private") ||
+      messageLower.includes("difference"))
+  ) {
     return {
-      reply: "Public comments are visible to all authenticated users viewing the opportunity. Private comments are only visible to you (the commenter) and the opportunity owner, making them ideal for sensitive questions or direct communication. Replies inherit the same visibility rules as their parent comment.",
+      reply:
+        "Public comments are visible to all authenticated users viewing the opportunity. Private comments are only visible to you (the commenter) and the opportunity owner, making them ideal for sensitive questions or direct communication. Replies inherit the same visibility rules as their parent comment.",
       topic: "opportunity-comments",
       relevance: "medium",
       suggestions: [
@@ -585,10 +733,11 @@ const getFallbackResponse = (message) => {
       ],
     };
   }
-  
+
   if (messageLower.includes("comment") || messageLower.includes("discussion")) {
     return {
-      reply: "You can comment on any opportunity by opening it and clicking the 'Comment' button. Choose between Public (visible to everyone) or Private (visible only to you and the opportunity owner). You can also reply to existing comments. Comments help facilitate discussion and questions about opportunities.",
+      reply:
+        "You can comment on any opportunity by opening it and clicking the 'Comment' button. Choose between Public (visible to everyone) or Private (visible only to you and the opportunity owner). You can also reply to existing comments. Comments help facilitate discussion and questions about opportunities.",
       topic: "opportunity-comments",
       relevance: "medium",
       suggestions: [
@@ -598,10 +747,11 @@ const getFallbackResponse = (message) => {
       ],
     };
   }
-  
+
   // Generic fallback
   return {
-    reply: "I'm here to help with the Industry-Academia Collaboration Platform. You can ask me about applying to opportunities, tracking applications, posting opportunities, managing profiles, using comments, navigating the forum, and more. Please try rephrasing your question or ask about a specific platform feature.",
+    reply:
+      "I'm here to help with the Industry-Academia Collaboration Platform. You can ask me about applying to opportunities, tracking applications, posting opportunities, managing profiles, using comments, navigating the forum, and more. Please try rephrasing your question or ask about a specific platform feature.",
     topic: "fallback",
     relevance: "low",
     suggestions: [

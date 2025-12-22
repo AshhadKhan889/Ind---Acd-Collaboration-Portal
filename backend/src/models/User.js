@@ -15,8 +15,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: [
         // 🎓 UNIVERSITIES
-        "Karachi Campus",
-        "Islamabad Campus",
         "National University of Sciences and Technology (Islamabad)",
         "Bahria University (Islamabad)",
         "Bahria University (Karachi)",

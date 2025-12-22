@@ -25,8 +25,6 @@ const Login = () => {
   const navigate = useNavigate();
 
   const instituteOptions = [
-    "Karachi Campus",
-    "Islamabad Campus",
     // 🎓 Universities
     "National University of Sciences and Technology (Islamabad)",
     "Bahria University (Islamabad)",

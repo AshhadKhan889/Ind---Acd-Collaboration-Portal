@@ -279,8 +279,6 @@ const RegisterStep1 = () => {
         </Typography>
         <Autocomplete
           options={[
-            "Karachi Campus",
-            "Islamabad Campus",
             // 🎓 Universities
             "National University of Sciences and Technology (Islamabad)",
             "Bahria University (Islamabad)",

@@ -335,8 +335,7 @@ const ProjectPosting = ({ currentUserId }) => {
             sx={{ mb: 2 }}
             error={!!errors.organization}
             helperText={
-              errors.organization ||
-              "Enter your organization or institution name"
+              errors.organization
             }
             required
           />
@@ -350,7 +349,7 @@ const ProjectPosting = ({ currentUserId }) => {
             sx={{ mb: 2 }}
             error={!!errors.projectTitle}
             helperText={
-              errors.projectTitle || "E.g. 'Battery Efficiency Optimization'"
+              errors.projectTitle
             }
             required
           />
@@ -367,8 +366,7 @@ const ProjectPosting = ({ currentUserId }) => {
             sx={{ mb: 2 }}
             error={!!errors.projectDescription}
             helperText={
-              errors.projectDescription ||
-              "Describe the project goals, objectives, and expected outcomes"
+              errors.projectDescription
             }
             required
           />

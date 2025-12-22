@@ -218,7 +218,7 @@ const InternshipPosting = ({ currentUserId }) => {
             }
             error={!!errors.organization}
             helperText={
-              errors.organization || "E.g. 'Microsoft', 'TechLabs', etc."
+              errors.organization
             }
             sx={{ mb: 3 }}
           />
@@ -230,7 +230,7 @@ const InternshipPosting = ({ currentUserId }) => {
               setFormData({ ...formData, title: e.target.value })
             }
             error={!!errors.title}
-            helperText={errors.title || "E.g. 'Software Engineering Intern'"}
+            helperText={errors.title}
             sx={{ mb: 3 }}
           />
 
@@ -245,7 +245,7 @@ const InternshipPosting = ({ currentUserId }) => {
             }
             error={!!errors.description}
             helperText={
-              errors.description || "Include objectives, responsibilities, etc."
+              errors.description
             }
             sx={{ mb: 3 }}
           />
